@@ -1,0 +1,7 @@
+{
+  "name": "LibriSeat Pro",
+  "description": "A sophisticated library seat management system with smart scheduling, real-time occupancy tracking, and Gemini-powered financial insights.",
+  "requestFramePermissions": [
+    "geolocation"
+  ]
+}
