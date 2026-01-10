@@ -52,7 +52,7 @@ const BookingForm: React.FC<BookingFormProps> = ({
   const [hourlyRate, setHourlyRate] = useState(30);
   
   const [startTime, setStartTime] = useState(initialBooking?.startTime || '09:00');
-  const [endTime, setEndTime] = useState(initialBooking?.endTime || '18:00');
+  const [endTime, setEndTime] = useState(initialBooking?.endTime || '11:00');
   
   const [totalAmount, setTotalAmount] = useState(initialBooking?.amount || 0);
   const [paidAmount, setPaidAmount] = useState(initialBooking?.paidAmount || 0);
@@ -230,11 +230,11 @@ const BookingForm: React.FC<BookingFormProps> = ({
               </div>
               <div className="flex gap-2">
                 <div className="flex-1">
-                  <label className="block text-[9px] font-black text-slate-400 uppercase mb-1">Value</label>
+                  <label className="block text-[9px] font-black text-slate-400 uppercase mb-1">Duration</label>
                   <input type="number" value={durationValue} onChange={e => setDurationValue(Math.max(1, parseInt(e.target.value) || 1))} className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs font-black text-center" />
                 </div>
                 <div className="flex-1">
-                  <label className="block text-[9px] font-black text-slate-400 uppercase mb-1">Unit</label>
+                  <label className="block text-[9px] font-black text-slate-400 uppercase mb-1">Duration Type</label>
                   <select value={durationUnit} onChange={e => setDurationUnit(e.target.value as DurationUnit)} className="w-full bg-white border border-slate-200 rounded-lg px-2 py-2 text-[10px] font-black text-center appearance-none">
                     <option value="DAY">DAY</option>
                     <option value="WEEK">WEEK</option>
