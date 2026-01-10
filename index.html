@@ -12,6 +12,9 @@
       body {
         font-family: 'Inter', sans-serif;
         background-color: #f8fafc;
+        margin: 0;
+        padding: 0;
+        overflow-x: hidden;
       }
       input, select, textarea {
         color: #000000 !important;
@@ -36,6 +39,10 @@
       }
       .animate-pulse-soft {
         animation: pulse-soft 2s infinite;
+      }
+      /* Mobile safe area handling */
+      .safe-area-bottom {
+        padding-bottom: env(safe-area-inset-bottom);
       }
     </style>
     <script type="importmap">
