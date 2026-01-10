@@ -5,9 +5,7 @@ import {
   Armchair, 
   IndianRupee, 
   AlertCircle,
-  TrendingUp,
-  ArrowUpRight,
-  ArrowDownRight
+  TrendingUp
 } from 'lucide-react';
 import { 
   XAxis, 
@@ -46,16 +44,14 @@ const Dashboard: React.FC<DashboardProps> = ({ stats, bookings }) => {
         <p className="text-slate-500 text-sm">Reviewing current occupancy & collections.</p>
       </div>
 
-      {/* Stats Cards - Grid Layout optimized for Mobile */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
-        <StatCard label="Total Units" value={stats.totalSeats} icon={Armchair} color="indigo" trend="+5%" trendUp={true} />
-        <StatCard label="Occupied" value={stats.liveOccupancy} icon={TrendingUp} color="emerald" trend={`${occupancyRate}%`} trendUp={true} />
-        <StatCard label="Revenue" value={CURRENCY_FORMATTER.format(stats.totalRevenue)} icon={IndianRupee} color="amber" trend="+12%" trendUp={true} />
-        <StatCard label="Total Dues" value={CURRENCY_FORMATTER.format(stats.totalDues)} icon={AlertCircle} color="rose" trend="-2%" trendUp={false} />
+        <StatCard label="Total Units" value={stats.totalSeats} icon={<Armchair className="w-4 h-4 sm:w-5 sm:h-5" />} color="indigo" trend="+5%" trendUp={true} />
+        <StatCard label="Occupied" value={stats.liveOccupancy} icon={<TrendingUp className="w-4 h-4 sm:w-5 sm:h-5" />} color="emerald" trend={`${occupancyRate}%`} trendUp={true} />
+        <StatCard label="Revenue" value={CURRENCY_FORMATTER.format(stats.totalRevenue)} icon={<IndianRupee className="w-4 h-4 sm:w-5 sm:h-5" />} color="amber" trend="+12%" trendUp={true} />
+        <StatCard label="Total Dues" value={CURRENCY_FORMATTER.format(stats.totalDues)} icon={<AlertCircle className="w-4 h-4 sm:w-5 sm:h-5" />} color="rose" trend="-2%" trendUp={false} />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Main Chart */}
         <div className="lg:col-span-2 bg-white p-4 sm:p-6 rounded-2xl border border-slate-200 shadow-sm">
           <h3 className="text-sm font-bold text-slate-800 mb-6">Revenue Trend</h3>
           <div className="h-[220px] sm:h-[300px]">
@@ -77,7 +73,6 @@ const Dashboard: React.FC<DashboardProps> = ({ stats, bookings }) => {
           </div>
         </div>
 
-        {/* Recent Activity */}
         <div className="bg-white p-4 sm:p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col max-h-[400px]">
           <h3 className="text-sm font-bold text-slate-800 mb-4">Latest Logs</h3>
           <div className="flex-1 space-y-3 overflow-y-auto pr-1">
@@ -103,7 +98,16 @@ const Dashboard: React.FC<DashboardProps> = ({ stats, bookings }) => {
   );
 };
 
-const StatCard: React.FC<{ label: string; value: string | number; icon: any; color: string; trend: string; trendUp: boolean }> = ({ label, value, icon: Icon, color, trend, trendUp }) => {
+interface StatCardProps {
+  label: string;
+  value: string | number;
+  icon: React.ReactNode;
+  color: string;
+  trend: string;
+  trendUp: boolean;
+}
+
+const StatCard: React.FC<StatCardProps> = ({ label, value, icon, color, trend, trendUp }) => {
   const colorMap: Record<string, string> = {
     indigo: 'bg-indigo-50 text-indigo-600',
     emerald: 'bg-emerald-50 text-emerald-600',
@@ -114,8 +118,8 @@ const StatCard: React.FC<{ label: string; value: string | number; icon: any; col
   return (
     <div className="bg-white p-3 sm:p-5 rounded-2xl border border-slate-200 shadow-sm">
       <div className="flex justify-between items-start mb-2">
-        <div className={`p-2 rounded-lg ${colorMap[color]}`}>
-          <Icon className="w-4 h-4 sm:w-5 sm:h-5" />
+        <div className={`p-2 rounded-lg ${colorMap[color] || colorMap.indigo}`}>
+          {icon}
         </div>
         <div className={`text-[8px] sm:text-[10px] font-black px-1.5 py-0.5 rounded-md ${trendUp ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-600'}`}>
           {trend}
