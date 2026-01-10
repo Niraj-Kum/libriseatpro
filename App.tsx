@@ -11,8 +11,8 @@ import AIInsights from './components/AIInsights';
 import { Student, Booking, Settings, DashboardStats, FeeStatus } from './types';
 import { dbService } from './services/dbService';
 import { 
-  Plus, Search, ChevronRight, Settings as SettingsIcon, Filter, AlertCircle, CheckCircle2, 
-  Download, Upload, Trash2, Info, Loader2, CloudUpload, CloudOff, Wifi, WifiOff
+  Plus, Search, CheckCircle2, 
+  Loader2, Database, ShieldCheck, Trash2, Library, LogOut
 } from 'lucide-react';
 import { CURRENCY_FORMATTER } from './constants';
 
@@ -23,7 +23,6 @@ const App: React.FC = () => {
   const [settings, setSettings] = useState<Settings | null>(null);
   const [isDataLoaded, setIsDataLoaded] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [isCloudActive, setIsCloudActive] = useState(false);
 
   const [showBookingForm, setShowBookingForm] = useState(false);
   const [showStudentForm, setShowStudentForm] = useState(false);
@@ -43,10 +42,7 @@ const App: React.FC = () => {
   const [bookingStatusFilter, setBookingStatusFilter] = useState<FeeStatus | 'All'>('All');
 
   useEffect(() => {
-    dbService.setConnectionCallback((active) => setIsCloudActive(active));
-
     const init = async () => {
-      // Fetch settings first (local or cloud)
       const initialSettings = await dbService.getSettings();
       setSettings(initialSettings);
       
@@ -56,15 +52,9 @@ const App: React.FC = () => {
         setIsDataLoaded(true);
       });
 
-      // Force-proceed if taking too long (e.g., stuck on permission denied)
-      const timeout = setTimeout(() => {
-        if (!isDataLoaded) setIsDataLoaded(true);
-      }, 5000);
-
       return () => {
         unsubscribeStudents();
         unsubscribeBookings();
-        clearTimeout(timeout);
       };
     };
 
@@ -127,41 +117,26 @@ const App: React.FC = () => {
 
   const handleSaveBooking = async (bookingPayload: Booking) => {
     setIsProcessing(true);
-    try {
-      await dbService.saveBooking(bookingPayload);
-      setShowBookingForm(false);
-      setEditingBooking(null);
-      setSelectedSeat(undefined);
-      setPreSelectedDate(undefined);
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setIsProcessing(false);
-    }
+    await dbService.saveBooking(bookingPayload);
+    setShowBookingForm(false);
+    setEditingBooking(null);
+    setSelectedSeat(undefined);
+    setPreSelectedDate(undefined);
+    setIsProcessing(false);
   };
 
   const handleSaveStudent = async (newStudent: Student) => {
     setIsProcessing(true);
-    try {
-      await dbService.saveStudent(newStudent);
-      setShowStudentForm(false);
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setIsProcessing(false);
-    }
+    await dbService.saveStudent(newStudent);
+    setShowStudentForm(false);
+    setIsProcessing(false);
   };
 
   const handleDeleteStudent = async (id: string) => {
-    if (confirm("Are you sure? This will delete associated data locally and on cloud if connected.")) {
+    if (confirm("Are you sure? This will delete the student and all their associated bookings.")) {
       setIsProcessing(true);
-      try {
-        await dbService.deleteStudent(id);
-      } catch (e) {
-        console.error(e);
-      } finally {
-        setIsProcessing(false);
-      }
+      await dbService.deleteStudent(id);
+      setIsProcessing(false);
     }
   };
 
@@ -191,27 +166,23 @@ const App: React.FC = () => {
   if (!isLoggedIn) {
     return (
       <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4">
-        <div className="bg-white p-10 rounded-[2.5rem] w-full max-w-md shadow-2xl space-y-8 animate-in fade-in zoom-in duration-500">
+        <div className="bg-white p-10 rounded-[2rem] w-full max-w-md shadow-2xl space-y-8">
           <div className="text-center space-y-2">
-            <div className="w-20 h-20 bg-indigo-600 rounded-[2rem] mx-auto flex items-center justify-center mb-6 shadow-xl shadow-indigo-900/40">
-              <CheckCircle2 className="text-white w-10 h-10" />
+            <div className="w-16 h-16 bg-indigo-600 rounded-2xl mx-auto flex items-center justify-center mb-6">
+              <CheckCircle2 className="text-white w-8 h-8" />
             </div>
-            <h1 className="text-3xl font-black text-slate-900 tracking-tight">LibriSeat Pro</h1>
-            <p className="text-slate-400 font-medium tracking-tight">Enterprise Seat Management</p>
+            <h1 className="text-2xl font-black text-slate-900">LibriSeat Pro</h1>
+            <p className="text-slate-400 font-medium">Mobile Library Console</p>
           </div>
           <form onSubmit={handleLogin} className="space-y-6">
             <div className="space-y-4">
-              <input type="email" placeholder="Admin Email" value={authEmail} onChange={e => setAuthEmail(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 focus:ring-2 focus:ring-indigo-500 outline-none text-black font-semibold" required />
-              <input type="password" placeholder="Password" value={authPass} onChange={e => setAuthPass(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 focus:ring-2 focus:ring-indigo-500 outline-none text-black font-semibold" required />
+              <input type="email" placeholder="Admin Email" value={authEmail} onChange={e => setAuthEmail(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3.5 focus:ring-2 focus:ring-indigo-500 outline-none text-black" required />
+              <input type="password" placeholder="Password" value={authPass} onChange={e => setAuthPass(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3.5 focus:ring-2 focus:ring-indigo-500 outline-none text-black" required />
             </div>
-            <button type="submit" className="w-full bg-indigo-600 text-white py-5 rounded-2xl font-bold text-lg hover:bg-indigo-700 transition-all shadow-xl shadow-indigo-100 active:scale-[0.98]">
-              Open Control Panel
+            <button type="submit" className="w-full bg-indigo-600 text-white py-4 rounded-xl font-bold text-lg">
+              Sign In
             </button>
           </form>
-          <div className="flex items-center justify-center gap-2 text-[10px] text-slate-400 uppercase tracking-widest font-black">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-            Cloud Persistence Ready
-          </div>
         </div>
       </div>
     );
@@ -219,21 +190,15 @@ const App: React.FC = () => {
 
   if (!isDataLoaded || !settings) {
     return (
-      <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center space-y-6">
-        <div className="relative">
-          <Loader2 className="w-16 h-16 text-indigo-600 animate-spin" />
-          <CloudUpload className="w-6 h-6 text-indigo-600 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
-        </div>
-        <div className="text-center">
-          <h2 className="text-xl font-black text-slate-900">Establishing Database Link</h2>
-          <p className="text-slate-500 text-sm animate-pulse-soft">Validating cloud permissions & synchronizing...</p>
-        </div>
+      <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-6 text-center">
+        <Loader2 className="w-12 h-12 text-indigo-600 animate-spin mb-4" />
+        <h2 className="text-lg font-bold">Syncing Records</h2>
       </div>
     );
   }
 
   return (
-    <div className="flex min-h-screen bg-slate-50 relative">
+    <div className="flex min-h-screen bg-slate-50 flex-col lg:flex-row">
       <Sidebar 
         currentView={currentView} 
         setCurrentView={setCurrentView} 
@@ -241,52 +206,55 @@ const App: React.FC = () => {
         onAddStudent={() => setShowStudentForm(true)}
       />
 
-      <main className="flex-1 p-8 overflow-y-auto h-screen">
-        {/* Connection Status Bar */}
-        <div className="max-w-7xl mx-auto mb-6 flex justify-end">
-          <div className={`px-4 py-2 rounded-2xl border flex items-center gap-3 transition-all ${
-            isCloudActive ? 'bg-indigo-50 border-indigo-100 text-indigo-600' : 'bg-rose-50 border-rose-100 text-rose-600'
-          }`}>
-            {isCloudActive ? <Wifi className="w-4 h-4" /> : <WifiOff className="w-4 h-4" />}
-            <span className="text-[10px] font-black uppercase tracking-widest">
-              {isCloudActive ? 'Cloud Synchronized' : 'Local Storage Mode (Permissions Locked)'}
-            </span>
+      <main className="flex-1 overflow-y-auto pb-24 lg:pb-8 lg:h-screen">
+        {/* Mobile Header */}
+        <header className="lg:hidden bg-white border-b border-slate-200 px-6 py-4 flex justify-between items-center sticky top-0 z-50">
+          <div className="flex items-center gap-2">
+            <Library className="text-indigo-600 w-5 h-5" />
+            <span className="font-black text-slate-900 uppercase tracking-tight">LibriSeat</span>
           </div>
-        </div>
-
-        {isProcessing && (
-           <div className="fixed top-6 right-6 z-[120] bg-white px-6 py-3 rounded-2xl shadow-2xl border border-indigo-100 flex items-center gap-3 animate-in slide-in-from-right-4">
-             <Loader2 className="w-4 h-4 text-indigo-600 animate-spin" />
-             <span className="text-xs font-black text-slate-900 uppercase tracking-widest">Applying Changes...</span>
-           </div>
-        )}
-
-        {!isCloudActive && (
-          <div className="max-w-7xl mx-auto mb-8 bg-amber-50 border border-amber-200 p-4 rounded-2xl flex items-center gap-4 text-amber-800 animate-in slide-in-from-top-2">
-            <AlertCircle className="w-5 h-5 flex-shrink-0" />
-            <p className="text-xs font-medium">
-              Firestore reports <b>Permission Denied</b>. Check your Firebase security rules. System is currently running on <b>LocalStorage</b> to prevent data loss.
-            </p>
+          <div className="flex items-center gap-3">
+             <button onClick={() => setShowStudentForm(true)} className="p-2 bg-indigo-50 text-indigo-600 rounded-lg">
+               <Plus className="w-5 h-5" />
+             </button>
+             <button onClick={handleLogout} className="p-2 text-slate-400">
+               <LogOut className="w-5 h-5" />
+             </button>
           </div>
-        )}
+        </header>
 
-        <div className="max-w-7xl mx-auto space-y-8 pb-10">
+        <div className="p-4 sm:p-8 max-w-7xl mx-auto space-y-6">
+          {/* Status Badge - Hidden on very small screens or moved */}
+          <div className="hidden sm:flex justify-end">
+            <div className="px-3 py-1.5 rounded-full border bg-emerald-50 border-emerald-100 text-emerald-600 flex items-center gap-2">
+              <Database className="w-3 h-3" />
+              <span className="text-[9px] font-black uppercase tracking-widest">Local Mode</span>
+            </div>
+          </div>
+
+          {isProcessing && (
+            <div className="fixed top-20 right-4 lg:top-6 lg:right-6 z-[120] bg-white px-4 py-2 rounded-xl shadow-xl border border-indigo-100 flex items-center gap-2">
+              <Loader2 className="w-3 h-3 text-indigo-600 animate-spin" />
+              <span className="text-[10px] font-black">Syncing...</span>
+            </div>
+          )}
+
           {currentView === 'dashboard' && (
-            <div className="space-y-8">
+            <div className="space-y-6">
               <Dashboard stats={stats} bookings={bookings} />
               <AIInsights bookings={bookings} totalRevenue={stats.totalRevenue} totalDues={stats.totalDues} />
             </div>
           )}
 
           {currentView === 'seatmap' && (
-            <div className="space-y-8 animate-in fade-in duration-300">
-              <div className="flex justify-between items-center">
+            <div className="space-y-6">
+              <div className="flex flex-col gap-4 sm:flex-row sm:justify-between sm:items-center">
                 <div>
-                  <h1 className="text-3xl font-black text-slate-900">Floor Inventory</h1>
-                  <p className="text-slate-500 text-sm">Real-time unit availability • {settings.totalSeats} seats</p>
+                  <h1 className="text-2xl font-black text-slate-900">Floor Layout</h1>
+                  <p className="text-slate-500 text-xs">Real-time seat availability</p>
                 </div>
-                <button onClick={() => { setEditingBooking(null); setShowBookingForm(true); }} className="bg-indigo-600 text-white px-8 py-4 rounded-[2rem] font-bold hover:bg-indigo-700 transition-all flex items-center gap-2 shadow-xl shadow-indigo-100">
-                  <Plus className="w-5 h-5" /> Quick Booking
+                <button onClick={() => { setEditingBooking(null); setShowBookingForm(true); }} className="w-full sm:w-auto bg-indigo-600 text-white px-6 py-3 rounded-xl font-bold flex items-center justify-center gap-2">
+                  <Plus className="w-4 h-4" /> Quick Book
                 </button>
               </div>
               <SeatMap bookings={bookings} settings={settings} onSeatClick={handleSeatClick} />
@@ -298,89 +266,90 @@ const App: React.FC = () => {
           )}
 
           {currentView === 'bookings' && (
-            <div className="space-y-8">
-               <div className="flex justify-between items-center">
-                  <h1 className="text-3xl font-black text-slate-900">Active Schedules</h1>
-                  <div className="flex gap-4">
-                    <div className="bg-white border border-slate-200 rounded-[1.5rem] px-5 py-3 flex items-center gap-3 w-72 shadow-sm">
-                      <Search className="w-4 h-4 text-slate-400" />
-                      <input type="text" placeholder="Search entries..." className="text-sm outline-none text-black w-full font-medium" value={bookingSearchQuery} onChange={(e) => setBookingSearchQuery(e.target.value)} />
-                    </div>
+            <div className="space-y-6">
+               <div className="flex flex-col gap-4 sm:flex-row sm:justify-between sm:items-center">
+                  <h1 className="text-2xl font-black text-slate-900">Active Ledger</h1>
+                  <div className="bg-white border border-slate-200 rounded-xl px-4 py-3 flex items-center gap-3 w-full sm:w-72 shadow-sm">
+                    <Search className="w-4 h-4 text-slate-400" />
+                    <input type="text" placeholder="Search..." className="text-sm outline-none text-black w-full" value={bookingSearchQuery} onChange={(e) => setBookingSearchQuery(e.target.value)} />
                   </div>
                </div>
-               <div className="bg-white rounded-[2.5rem] border border-slate-200 overflow-hidden shadow-sm">
-                 <table className="w-full text-left">
-                   <thead className="bg-slate-50 border-b border-slate-100">
-                     <tr>
-                       <th className="px-8 py-6 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Student</th>
-                       <th className="px-8 py-6 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Seat</th>
-                       <th className="px-8 py-6 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Period</th>
-                       <th className="px-8 py-6 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Valuation</th>
-                       <th className="px-8 py-6 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Status</th>
-                     </tr>
-                   </thead>
-                   <tbody className="divide-y divide-slate-50">
-                     {filteredBookings.map(b => (
-                       <tr key={b.id} className="hover:bg-slate-50/80 transition-colors cursor-pointer group" onClick={() => setViewingBooking(b)}>
-                         <td className="px-8 py-5">
-                           <p className="font-bold text-slate-900 group-hover:text-indigo-600 transition-colors">{b.studentName}</p>
-                           <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">{b.id}</p>
-                         </td>
-                         <td className="px-8 py-5">
-                           <div className="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center font-black text-sm border border-indigo-100">{b.seatNumber}</div>
-                         </td>
-                         <td className="px-8 py-5 text-sm text-slate-600 font-medium">
-                           {b.startDate} <span className="text-slate-300 mx-1">→</span> {b.endDate}
-                           <p className="text-[10px] text-slate-400 font-bold">{b.startTime} - {b.endTime}</p>
-                         </td>
-                         <td className="px-8 py-5 font-black text-slate-900">{CURRENCY_FORMATTER.format(b.amount)}</td>
-                         <td className="px-8 py-5">
-                           <span className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest ${
-                             b.feeStatus === 'Paid' ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'
-                           }`}>{b.feeStatus}</span>
-                         </td>
+               
+               {/* Table for Desktop, Cards for Mobile */}
+               <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
+                 <div className="hidden sm:block">
+                   <table className="w-full text-left">
+                     <thead className="bg-slate-50 border-b border-slate-100">
+                       <tr>
+                         <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Student</th>
+                         <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Unit</th>
+                         <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Status</th>
+                         <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Amount</th>
                        </tr>
-                     ))}
-                   </tbody>
-                 </table>
+                     </thead>
+                     <tbody className="divide-y divide-slate-50">
+                       {filteredBookings.map(b => (
+                         <tr key={b.id} className="hover:bg-slate-50 cursor-pointer" onClick={() => setViewingBooking(b)}>
+                           <td className="px-6 py-4">
+                             <p className="font-bold text-slate-900">{b.studentName}</p>
+                             <p className="text-[9px] text-slate-400 font-bold uppercase">{b.startDate}</p>
+                           </td>
+                           <td className="px-6 py-4">
+                             <div className="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center font-black text-xs">#{b.seatNumber}</div>
+                           </td>
+                           <td className="px-6 py-4">
+                             <span className={`px-2 py-1 rounded-md text-[9px] font-black uppercase ${
+                               b.feeStatus === 'Paid' ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'
+                             }`}>{b.feeStatus}</span>
+                           </td>
+                           <td className="px-6 py-4 text-right font-black text-slate-900">{CURRENCY_FORMATTER.format(b.amount)}</td>
+                         </tr>
+                       ))}
+                     </tbody>
+                   </table>
+                 </div>
+                 <div className="sm:hidden divide-y divide-slate-100">
+                   {filteredBookings.map(b => (
+                     <div key={b.id} className="p-4 active:bg-slate-50 flex justify-between items-center" onClick={() => setViewingBooking(b)}>
+                       <div>
+                         <p className="font-bold text-slate-900">{b.studentName}</p>
+                         <p className="text-[10px] text-slate-400 font-bold">Seat #{b.seatNumber} • {b.startDate}</p>
+                       </div>
+                       <div className="text-right">
+                         <p className="font-black text-slate-900 text-sm">{CURRENCY_FORMATTER.format(b.amount)}</p>
+                         <span className={`text-[8px] font-black uppercase ${b.feeStatus === 'Paid' ? 'text-emerald-600' : 'text-rose-600'}`}>{b.feeStatus}</span>
+                       </div>
+                     </div>
+                   ))}
+                 </div>
                </div>
             </div>
           )}
 
           {currentView === 'students' && (
-             <div className="space-y-8">
-                <div className="flex justify-between items-center">
-                  <div>
-                    <h1 className="text-3xl font-black text-slate-900">Member Directory</h1>
-                    <p className="text-slate-500 text-sm">{students.length} registered profiles</p>
-                  </div>
-                  <button onClick={() => setShowStudentForm(true)} className="bg-slate-900 text-white px-8 py-4 rounded-[2rem] font-bold hover:bg-black transition-all flex items-center gap-2 shadow-xl">
-                    <Plus className="w-5 h-5" /> New Member
-                  </button>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+             <div className="space-y-6">
+                <h1 className="text-2xl font-black text-slate-900">Members</h1>
+                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
                   {filteredStudentsView.map(s => (
-                    <div key={s.id} className="bg-white p-8 rounded-[2.5rem] border border-slate-200 shadow-sm hover:border-indigo-300 transition-all group">
-                      <div className="flex items-center gap-5 mb-8">
-                        <div className="w-16 h-16 rounded-2xl bg-slate-100 flex items-center justify-center font-black text-slate-400 text-2xl group-hover:bg-indigo-600 group-hover:text-white transition-all shadow-inner">{s.name.charAt(0)}</div>
-                        <div className="flex-1">
-                          <h3 className="font-black text-slate-900 text-lg leading-tight">{s.name}</h3>
-                          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{s.id}</p>
+                    <div key={s.id} className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col gap-4">
+                      <div className="flex items-center gap-4">
+                        <div className="w-12 h-12 rounded-xl bg-slate-100 flex items-center justify-center font-black text-slate-400">{s.name.charAt(0)}</div>
+                        <div className="flex-1 min-w-0">
+                          <h3 className="font-bold text-slate-900 truncate">{s.name}</h3>
+                          <p className="text-[9px] font-bold text-slate-400 uppercase truncate">{s.id}</p>
                         </div>
-                        <button onClick={(e) => { e.stopPropagation(); handleDeleteStudent(s.id); }} className="p-2 text-slate-300 hover:text-rose-500 hover:bg-rose-50 rounded-xl transition-all"><Trash2 className="w-5 h-5" /></button>
+                        <button onClick={(e) => { e.stopPropagation(); handleDeleteStudent(s.id); }} className="p-2 text-slate-300 hover:text-rose-500"><Trash2 className="w-4 h-4" /></button>
                       </div>
-                      <div className="grid grid-cols-2 gap-4 mb-8">
-                         <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 text-center">
-                            <p className="text-[9px] font-black text-slate-400 uppercase mb-1">Dues</p>
-                            <p className={`text-sm font-black ${s.totalDues > 0 ? 'text-rose-600' : 'text-slate-900'}`}>{CURRENCY_FORMATTER.format(s.totalDues)}</p>
-                         </div>
-                         <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 text-center">
-                            <p className="text-[9px] font-black text-slate-400 uppercase mb-1">Bookings</p>
-                            <p className="text-sm font-black text-slate-900">{s.bookingCount}</p>
-                         </div>
+                      <div className="flex gap-2">
+                        <div className="flex-1 bg-slate-50 p-3 rounded-xl border border-slate-100 text-center">
+                          <p className="text-[8px] font-black text-slate-400 uppercase mb-0.5">Dues</p>
+                          <p className={`text-xs font-black ${s.totalDues > 0 ? 'text-rose-600' : 'text-slate-900'}`}>{CURRENCY_FORMATTER.format(s.totalDues)}</p>
+                        </div>
+                        <div className="flex-1 bg-slate-50 p-3 rounded-xl border border-slate-100 text-center">
+                          <p className="text-[8px] font-black text-slate-400 uppercase mb-0.5">Count</p>
+                          <p className="text-xs font-black text-slate-900">{s.bookingCount}</p>
+                        </div>
                       </div>
-                      <button className="w-full py-4 border-2 border-slate-100 rounded-2xl text-xs font-black text-slate-400 uppercase tracking-widest hover:border-indigo-600 hover:text-indigo-600 transition-all">View Cloud History</button>
                     </div>
                   ))}
                 </div>
@@ -388,33 +357,28 @@ const App: React.FC = () => {
           )}
 
           {currentView === 'settings' && (
-             <div className="max-w-3xl space-y-10">
-                <section className="space-y-6">
-                  <h1 className="text-3xl font-black text-slate-900">System Configuration</h1>
-                  <div className="bg-white p-10 rounded-[2.5rem] border border-slate-200 shadow-sm space-y-8">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <h3 className="font-black text-slate-900">Library Capacity</h3>
-                        <p className="text-sm text-slate-500">Total physical seats available in floor inventory</p>
-                      </div>
-                      <input type="number" value={settings.totalSeats} onChange={e => setSettings({...settings, totalSeats: parseInt(e.target.value) || 1})} className="w-24 bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 text-center font-black text-lg text-black font-semibold" />
+             <div className="max-w-2xl space-y-6">
+                <h1 className="text-2xl font-black text-slate-900">System</h1>
+                <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-6">
+                  <div className="flex items-center justify-between gap-4">
+                    <div>
+                      <h3 className="font-bold text-slate-900">Library Capacity</h3>
+                      <p className="text-[10px] text-slate-500">Max seats available</p>
                     </div>
-                    <div className="pt-8 border-t border-slate-100 flex justify-end">
-                      <button onClick={async () => { 
-                        setIsProcessing(true);
-                        await dbService.saveSettings(settings); 
-                        setIsProcessing(false);
-                        alert("Settings updated!"); 
-                      }} className="bg-slate-900 text-white px-10 py-4 rounded-[1.5rem] font-bold hover:bg-black transition-all shadow-xl shadow-slate-200">Save Environment</button>
-                    </div>
+                    <input type="number" value={settings.totalSeats} onChange={e => setSettings({...settings, totalSeats: parseInt(e.target.value) || 1})} className="w-16 bg-slate-50 border border-slate-200 rounded-lg px-2 py-2 text-center font-bold text-black" />
                   </div>
-                </section>
+                  <button onClick={async () => { 
+                    setIsProcessing(true);
+                    await dbService.saveSettings(settings); 
+                    setIsProcessing(false);
+                    alert("Saved locally"); 
+                  }} className="w-full bg-slate-900 text-white py-3.5 rounded-xl font-bold">Update Preferences</button>
+                </div>
              </div>
           )}
         </div>
       </main>
 
-      {/* MODALS */}
       {showBookingForm && (
         <BookingForm 
           students={students} 

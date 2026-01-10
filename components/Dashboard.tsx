@@ -10,8 +10,6 @@ import {
   ArrowDownRight
 } from 'lucide-react';
 import { 
-  BarChart, 
-  Bar, 
   XAxis, 
   YAxis, 
   CartesianGrid, 
@@ -29,79 +27,38 @@ interface DashboardProps {
 }
 
 const Dashboard: React.FC<DashboardProps> = ({ stats, bookings }) => {
-  // Generate sample revenue data for the chart
   const revenueData = [
-    { name: 'Mon', revenue: 4500 },
-    { name: 'Tue', revenue: 5200 },
-    { name: 'Wed', revenue: 3800 },
-    { name: 'Thu', revenue: 6100 },
-    { name: 'Fri', revenue: 4900 },
-    { name: 'Sat', revenue: 7200 },
-    { name: 'Sun', revenue: 5800 },
+    { name: 'M', revenue: 4500 },
+    { name: 'T', revenue: 5200 },
+    { name: 'W', revenue: 3800 },
+    { name: 'T', revenue: 6100 },
+    { name: 'F', revenue: 4900 },
+    { name: 'S', revenue: 7200 },
+    { name: 'S', revenue: 5800 },
   ];
 
   const occupancyRate = Math.round((stats.liveOccupancy / stats.totalSeats) * 100) || 0;
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-500">
-      <div className="flex justify-between items-end">
-        <div>
-          <h1 className="text-3xl font-bold text-slate-900">Management Overview</h1>
-          <p className="text-slate-500">Welcome back, Admin. Here's what's happening today.</p>
-        </div>
-        <div className="bg-white px-4 py-2 rounded-xl border border-slate-200 flex items-center gap-2 text-sm text-slate-600 shadow-sm">
-          <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
-          Live System Active
-        </div>
+    <div className="space-y-6">
+      <div className="hidden sm:block">
+        <h1 className="text-2xl font-black text-slate-900">Control Panel</h1>
+        <p className="text-slate-500 text-sm">Reviewing current occupancy & collections.</p>
       </div>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <StatCard 
-          label="Total Seats" 
-          value={stats.totalSeats} 
-          icon={Armchair} 
-          color="indigo" 
-          trend="+5%"
-          trendUp={true}
-        />
-        <StatCard 
-          label="Live Occupancy" 
-          value={`${stats.liveOccupancy} (${occupancyRate}%)`} 
-          icon={TrendingUp} 
-          color="emerald" 
-          trend="Peak"
-          trendUp={true}
-        />
-        <StatCard 
-          label="Total Revenue" 
-          value={CURRENCY_FORMATTER.format(stats.totalRevenue)} 
-          icon={IndianRupee} 
-          color="amber" 
-          trend="+12%"
-          trendUp={true}
-        />
-        <StatCard 
-          label="Total Dues" 
-          value={CURRENCY_FORMATTER.format(stats.totalDues)} 
-          icon={AlertCircle} 
-          color="rose" 
-          trend="-2%"
-          trendUp={false}
-        />
+      {/* Stats Cards - Grid Layout optimized for Mobile */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
+        <StatCard label="Total Units" value={stats.totalSeats} icon={Armchair} color="indigo" trend="+5%" trendUp={true} />
+        <StatCard label="Occupied" value={stats.liveOccupancy} icon={TrendingUp} color="emerald" trend={`${occupancyRate}%`} trendUp={true} />
+        <StatCard label="Revenue" value={CURRENCY_FORMATTER.format(stats.totalRevenue)} icon={IndianRupee} color="amber" trend="+12%" trendUp={true} />
+        <StatCard label="Total Dues" value={CURRENCY_FORMATTER.format(stats.totalDues)} icon={AlertCircle} color="rose" trend="-2%" trendUp={false} />
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Main Chart */}
-        <div className="lg:col-span-2 bg-white p-8 rounded-3xl border border-slate-200 shadow-sm">
-          <div className="flex justify-between items-center mb-8">
-            <h3 className="text-lg font-bold text-slate-800">Weekly Revenue</h3>
-            <div className="flex gap-2">
-              <button className="px-3 py-1 text-xs font-semibold bg-indigo-50 text-indigo-600 rounded-lg">Last 7 Days</button>
-              <button className="px-3 py-1 text-xs font-semibold text-slate-400 hover:text-slate-600">30 Days</button>
-            </div>
-          </div>
-          <div className="h-[300px]">
+        <div className="lg:col-span-2 bg-white p-4 sm:p-6 rounded-2xl border border-slate-200 shadow-sm">
+          <h3 className="text-sm font-bold text-slate-800 mb-6">Revenue Trend</h3>
+          <div className="h-[220px] sm:h-[300px]">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={revenueData}>
                 <defs>
@@ -111,42 +68,34 @@ const Dashboard: React.FC<DashboardProps> = ({ stats, bookings }) => {
                   </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 12}} dy={10} />
-                <YAxis axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 12}} />
-                <Tooltip 
-                  contentStyle={{borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)'}} 
-                  formatter={(value: number) => CURRENCY_FORMATTER.format(value)}
-                />
-                <Area type="monotone" dataKey="revenue" stroke="#4f46e5" strokeWidth={3} fillOpacity={1} fill="url(#colorRev)" />
+                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 10}} />
+                <YAxis axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 10}} />
+                <Tooltip contentStyle={{borderRadius: '12px', border: 'none', fontSize: '12px'}} />
+                <Area type="monotone" dataKey="revenue" stroke="#4f46e5" strokeWidth={2.5} fillOpacity={1} fill="url(#colorRev)" />
               </AreaChart>
             </ResponsiveContainer>
           </div>
         </div>
 
         {/* Recent Activity */}
-        <div className="bg-white p-8 rounded-3xl border border-slate-200 shadow-sm flex flex-col">
-          <h3 className="text-lg font-bold text-slate-800 mb-6">Latest Bookings</h3>
-          <div className="flex-1 space-y-4 overflow-y-auto max-h-[300px] pr-2">
-            {bookings.slice(-5).reverse().map((b, i) => (
-              <div key={b.id} className="flex items-center gap-4 p-3 hover:bg-slate-50 rounded-2xl transition-all border border-transparent hover:border-slate-100">
-                <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center font-bold text-slate-600">
+        <div className="bg-white p-4 sm:p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col max-h-[400px]">
+          <h3 className="text-sm font-bold text-slate-800 mb-4">Latest Logs</h3>
+          <div className="flex-1 space-y-3 overflow-y-auto pr-1">
+            {bookings.slice(-8).reverse().map((b) => (
+              <div key={b.id} className="flex items-center gap-3 p-2 hover:bg-slate-50 rounded-xl transition-all">
+                <div className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center font-bold text-slate-600 text-[10px]">
                   {b.studentName.charAt(0)}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="font-semibold text-slate-800 truncate">{b.studentName}</p>
-                  <p className="text-xs text-slate-500">Seat {b.seatNumber} • {b.startDate}</p>
+                  <p className="font-bold text-slate-800 text-xs truncate">{b.studentName}</p>
+                  <p className="text-[9px] text-slate-400">Seat {b.seatNumber} • {b.startDate}</p>
                 </div>
                 <div className="text-right">
-                  <p className="font-bold text-indigo-600 text-sm">₹{b.amount}</p>
-                  <p className={`text-[10px] uppercase tracking-wider font-bold ${
-                    b.feeStatus === 'Paid' ? 'text-green-500' : 'text-amber-500'
-                  }`}>
-                    {b.feeStatus}
-                  </p>
+                  <p className="font-black text-indigo-600 text-xs">₹{b.amount}</p>
                 </div>
               </div>
             ))}
-            {bookings.length === 0 && <p className="text-slate-400 text-center py-10">No recent bookings found.</p>}
+            {bookings.length === 0 && <p className="text-slate-400 text-center py-6 text-xs italic">No records yet.</p>}
           </div>
         </div>
       </div>
@@ -163,18 +112,17 @@ const StatCard: React.FC<{ label: string; value: string | number; icon: any; col
   };
 
   return (
-    <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow group">
-      <div className="flex justify-between items-start mb-4">
-        <div className={`p-3 rounded-2xl ${colorMap[color]} group-hover:scale-110 transition-transform`}>
-          <Icon className="w-6 h-6" />
+    <div className="bg-white p-3 sm:p-5 rounded-2xl border border-slate-200 shadow-sm">
+      <div className="flex justify-between items-start mb-2">
+        <div className={`p-2 rounded-lg ${colorMap[color]}`}>
+          <Icon className="w-4 h-4 sm:w-5 sm:h-5" />
         </div>
-        <div className={`flex items-center gap-1 text-xs font-bold px-2 py-1 rounded-full ${trendUp ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-600'}`}>
-          {trendUp ? <ArrowUpRight className="w-3 h-3" /> : <ArrowDownRight className="w-3 h-3" />}
+        <div className={`text-[8px] sm:text-[10px] font-black px-1.5 py-0.5 rounded-md ${trendUp ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-600'}`}>
           {trend}
         </div>
       </div>
-      <p className="text-slate-500 text-sm font-medium">{label}</p>
-      <h3 className="text-2xl font-bold text-slate-900 mt-1">{value}</h3>
+      <p className="text-slate-400 text-[9px] sm:text-[10px] font-bold uppercase tracking-wider">{label}</p>
+      <h3 className="text-sm sm:text-lg font-black text-slate-900 mt-0.5 truncate">{value}</h3>
     </div>
   );
 };

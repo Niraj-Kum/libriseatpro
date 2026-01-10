@@ -3,6 +3,7 @@ import { GoogleGenAI } from "@google/genai";
 import { Booking } from "../types";
 
 export const getAIInsights = async (bookings: Booking[], totalRevenue: number, totalDues: number) => {
+  // Initialize with named parameter as per guidelines
   const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   
   const bookingSummary = bookings.map(b => ({
@@ -37,6 +38,7 @@ export const getAIInsights = async (bookings: Booking[], totalRevenue: number, t
       model: 'gemini-3-flash-preview',
       contents: prompt,
     });
+    // Use .text property instead of text() method
     return response.text;
   } catch (error) {
     console.error("Gemini Error:", error);
