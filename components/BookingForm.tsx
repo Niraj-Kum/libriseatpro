@@ -4,6 +4,14 @@ import { Student, Booking, Settings, FeeStatus } from '../types';
 import { DAYS } from '../constants';
 import { X, Calendar, Clock, ChevronRight, Search, User, Check, IndianRupee, AlertCircle, Edit3, Repeat, Calculator, Info, UserPlus, Globe, MousePointer2 } from 'lucide-react';
 
+const formatTimeTo12Hour = (time24h: string): string => {
+  if (!time24h) return '';
+  const [hours, minutes] = time24h.split(':').map(Number);
+  const ampm = hours >= 12 ? 'PM' : 'AM';
+  const hours12 = hours % 12 || 12; // Convert 0 to 12 for 12 AM/PM
+  return `${hours12}:${minutes.toString().padStart(2, '0')} ${ampm}`;
+};
+
 type DurationUnit = 'DAY' | 'WEEK' | 'MONTH' | 'YEAR';
 type PricingModel = 'FLAT' | 'HOURLY';
 type ActivationType = 'DAILY' | 'CUSTOM';
@@ -52,7 +60,7 @@ const BookingForm: React.FC<BookingFormProps> = ({
   const [hourlyRate, setHourlyRate] = useState(30);
   
   const [startTime, setStartTime] = useState(initialBooking?.startTime || '09:00');
-  const [endTime, setEndTime] = useState(initialBooking?.endTime || '18:00');
+  const [endTime, setEndTime] = useState(initialBooking?.endTime || '11:00');
   
   const [totalAmount, setTotalAmount] = useState(initialBooking?.amount || 0);
   const [paidAmount, setPaidAmount] = useState(initialBooking?.paidAmount || 0);
@@ -230,11 +238,11 @@ const BookingForm: React.FC<BookingFormProps> = ({
               </div>
               <div className="flex gap-2">
                 <div className="flex-1">
-                  <label className="block text-[9px] font-black text-slate-400 uppercase mb-1">Value</label>
+                  <label className="block text-[9px] font-black text-slate-400 uppercase mb-1">Duration</label>
                   <input type="number" value={durationValue} onChange={e => setDurationValue(Math.max(1, parseInt(e.target.value) || 1))} className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs font-black text-center" />
                 </div>
                 <div className="flex-1">
-                  <label className="block text-[9px] font-black text-slate-400 uppercase mb-1">Unit</label>
+                  <label className="block text-[9px] font-black text-slate-400 uppercase mb-1">Duration Type</label>
                   <select value={durationUnit} onChange={e => setDurationUnit(e.target.value as DurationUnit)} className="w-full bg-white border border-slate-200 rounded-lg px-2 py-2 text-[10px] font-black text-center appearance-none">
                     <option value="DAY">DAY</option>
                     <option value="WEEK">WEEK</option>
@@ -248,9 +256,15 @@ const BookingForm: React.FC<BookingFormProps> = ({
             <div className="space-y-3">
               <label className="block text-[9px] font-black text-slate-400 uppercase">Daily Time Window</label>
               <div className="flex items-center gap-2">
-                <input type="time" value={startTime} onChange={e => setStartTime(e.target.value)} className="flex-1 bg-white border border-slate-200 rounded-lg px-2 py-2 text-xs font-bold" />
+                <div className="flex-1 flex items-center gap-1">
+                  <input type="time" value={startTime} onChange={e => setStartTime(e.target.value)} className="flex-1 bg-white border border-slate-200 rounded-lg px-2 py-2 text-xs font-bold" />
+                  <span className="text-slate-500 text-xs font-bold w-16 text-center">{formatTimeTo12Hour(startTime)}</span>
+                </div>
                 <span className="text-slate-300">→</span>
-                <input type="time" value={endTime} onChange={e => setEndTime(e.target.value)} className="flex-1 bg-white border border-slate-200 rounded-lg px-2 py-2 text-xs font-bold" />
+                <div className="flex-1 flex items-center gap-1">
+                  <input type="time" value={endTime} onChange={e => setEndTime(e.target.value)} className="flex-1 bg-white border border-slate-200 rounded-lg px-2 py-2 text-xs font-bold" />
+                  <span className="text-slate-500 text-xs font-bold w-16 text-center">{formatTimeTo12Hour(endTime)}</span>
+                </div>
               </div>
             </div>
 

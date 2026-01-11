@@ -24,6 +24,17 @@ android {
     }
 }
 
+
+configurations.all {
+    resolutionStrategy {
+        // Force a specific version of Kotlin stdlib to avoid conflicts
+        // This is necessary if different dependencies pull in different versions of Kotlin stdlib
+        force 'org.jetbrains.kotlin:kotlin-stdlib:1.8.22' // Use the version that is desired
+        force 'org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.8.22'
+        force 'org.jetbrains.kotlin:kotlin-stdlib-jdk7:1.8.22'
+    }
+}
+
 repositories {
     flatDir{
         dirs '../capacitor-cordova-android-plugins/src/main/libs', 'libs'
