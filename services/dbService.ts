@@ -1,5 +1,6 @@
 
 import { Student, Booking, Settings } from '../types';
+import localforage from 'localforage';
 
 const COLLECTIONS = {
   STUDENTS: 'students',
@@ -20,101 +21,93 @@ class DatabaseManager {
   private bookingCallbacks: Set<(bookings: Booking[]) => void> = new Set();
 
   constructor() {
-    // Local storage based manager doesn't need external init
-    window.addEventListener('storage', (e) => {
-      if (e.key === `libri_${COLLECTIONS.STUDENTS}`) {
-        this.notifyStudents();
-      }
-      if (e.key === `libri_${COLLECTIONS.BOOKINGS}`) {
-        this.notifyBookings();
-      }
-    });
+    // localforage doesn't use storage events, so we'll rely on our own notifications
   }
 
-  private notifyStudents() {
-    const data = this.getLocal<Student>(COLLECTIONS.STUDENTS);
+  private async notifyStudents() {
+    const data = await this.getLocal<Student>(COLLECTIONS.STUDENTS);
     this.studentCallbacks.forEach(cb => cb(data));
   }
 
-  private notifyBookings() {
-    const data = this.getLocal<Booking>(COLLECTIONS.BOOKINGS);
+  private async notifyBookings() {
+    const data = await this.getLocal<Booking>(COLLECTIONS.BOOKINGS);
     this.bookingCallbacks.forEach(cb => cb(data));
   }
 
   setConnectionCallback(cb: (active: boolean) => void) {
     this.onConnectionChange = cb;
-    // Always false now since we removed Cloud
     cb(false);
   }
 
-  private getLocal<T>(key: string): T[] {
-    const data = localStorage.getItem(`libri_${key}`);
-    return data ? JSON.parse(data) : [];
+  private async getLocal<T>(key: string): Promise<T[]> {
+    const data = await localforage.getItem<T[]>(`libri_${key}`);
+    return data || [];
   }
 
-  private setLocal<T>(key: string, data: T[]) {
-    localStorage.setItem(`libri_${key}`, JSON.stringify(data));
+  private async setLocal<T>(key: string, data: T[]) {
+    await localforage.setItem(`libri_${key}`, data);
   }
 
-  subscribeToStudents(callback: (students: Student[]) => void) {
+  async subscribeToStudents(callback: (students: Student[]) => void) {
     this.studentCallbacks.add(callback);
-    callback(this.getLocal<Student>(COLLECTIONS.STUDENTS));
+    const data = await this.getLocal<Student>(COLLECTIONS.STUDENTS);
+    callback(data);
     return () => {
       this.studentCallbacks.delete(callback);
     };
   }
 
-  subscribeToBookings(callback: (bookings: Booking[]) => void) {
+  async subscribeToBookings(callback: (bookings: Booking[]) => void) {
     this.bookingCallbacks.add(callback);
-    callback(this.getLocal<Booking>(COLLECTIONS.BOOKINGS));
+    const data = await this.getLocal<Booking>(COLLECTIONS.BOOKINGS);
+    callback(data);
     return () => {
       this.bookingCallbacks.delete(callback);
     };
   }
 
   async saveStudent(student: Student): Promise<void> {
-    const local = this.getLocal<Student>(COLLECTIONS.STUDENTS);
+    const local = await this.getLocal<Student>(COLLECTIONS.STUDENTS);
     const index = local.findIndex(s => s.id === student.id);
     if (index > -1) local[index] = student;
     else local.push(student);
-    this.setLocal(COLLECTIONS.STUDENTS, local);
+    await this.setLocal(COLLECTIONS.STUDENTS, local);
     this.notifyStudents();
   }
 
   async deleteStudent(id: string): Promise<void> {
-    const local = this.getLocal<Student>(COLLECTIONS.STUDENTS).filter(s => s.id !== id);
-    this.setLocal(COLLECTIONS.STUDENTS, local);
+    const local = (await this.getLocal<Student>(COLLECTIONS.STUDENTS)).filter(s => s.id !== id);
+    await this.setLocal(COLLECTIONS.STUDENTS, local);
     
-    // Also cleanup bookings for this student
-    const localBookings = this.getLocal<Booking>(COLLECTIONS.BOOKINGS).filter(b => b.studentId !== id);
-    this.setLocal(COLLECTIONS.BOOKINGS, localBookings);
+    const localBookings = (await this.getLocal<Booking>(COLLECTIONS.BOOKINGS)).filter(b => b.studentId !== id);
+    await this.setLocal(COLLECTIONS.BOOKINGS, localBookings);
     
     this.notifyStudents();
     this.notifyBookings();
   }
 
   async saveBooking(booking: Booking): Promise<void> {
-    const local = this.getLocal<Booking>(COLLECTIONS.BOOKINGS);
+    const local = await this.getLocal<Booking>(COLLECTIONS.BOOKINGS);
     const index = local.findIndex(b => b.id === booking.id);
     if (index > -1) local[index] = booking;
     else local.push(booking);
-    this.setLocal(COLLECTIONS.BOOKINGS, local);
+    await this.setLocal(COLLECTIONS.BOOKINGS, local);
     this.notifyBookings();
   }
 
   async deleteBooking(id: string): Promise<void> {
-    const local = this.getLocal<Booking>(COLLECTIONS.BOOKINGS).filter(b => b.id !== id);
-    this.setLocal(COLLECTIONS.BOOKINGS, local);
+    const local = (await this.getLocal<Booking>(COLLECTIONS.BOOKINGS)).filter(b => b.id !== id);
+    await this.setLocal(COLLECTIONS.BOOKINGS, local);
     this.notifyBookings();
   }
 
   async getSettings(): Promise<Settings> {
-    const localSettings = localStorage.getItem(`libri_${COLLECTIONS.SETTINGS}`);
-    return localSettings ? JSON.parse(localSettings) : defaultSettings;
+    const localSettings = await localforage.getItem<Settings>(`libri_${COLLECTIONS.SETTINGS}`);
+    return localSettings || defaultSettings;
   }
 
   async saveSettings(settings: Settings): Promise<void> {
-    localStorage.setItem(`libri_${COLLECTIONS.SETTINGS}`, JSON.stringify(settings));
+    await localforage.setItem(`libri_${COLLECTIONS.SETTINGS}`, settings);
   }
 
   getOccupancyStatus(bookings: Booking[], date: string, time: string): Map<number, Booking> {

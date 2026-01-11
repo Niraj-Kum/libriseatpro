@@ -103,7 +103,7 @@ const TimelineView: React.FC<TimelineViewProps> = ({ bookings, settings, onCellC
         {isSelectedToday && (
           <div className="flex items-center gap-2">
              <div className="w-2 h-2 bg-rose-500 rounded-full animate-pulse"></div>
-             <span className="text-[10px] font-black text-rose-500 uppercase tracking-widest">LIVE NOW: {now.getHours()}:{now.getMinutes().toString().padStart(2, '0')}</span>
+             <span className="text-[10px] font-black text-rose-500 uppercase tracking-widest">LIVE NOW: {now.toLocaleTimeString('en-US', { hour: 'numeric', minute: 'numeric', hour12: true })}</span>
           </div>
         )}
       </div>

@@ -45,9 +45,9 @@ const App: React.FC = () => {
     const init = async () => {
       const initialSettings = await dbService.getSettings();
       setSettings(initialSettings);
-      
-      const unsubscribeStudents = dbService.subscribeToStudents(setStudents);
-      const unsubscribeBookings = dbService.subscribeToBookings((data) => {
+
+      const unsubscribeStudents = await dbService.subscribeToStudents(setStudents);
+      const unsubscribeBookings = await dbService.subscribeToBookings((data) => {
         setBookings(data);
         setIsDataLoaded(true);
       });
@@ -58,7 +58,11 @@ const App: React.FC = () => {
       };
     };
 
-    init();
+    const unregister = init();
+
+    return () => {
+        unregister.then(fn => fn());
+    }
   }, []);
 
   const stats: DashboardStats = useMemo(() => {

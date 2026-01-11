@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">libriseat-pro</string>
+    <string name="title_activity_main">libriseat-pro</string>
+    <string name="package_name">com.libriseatpro.app</string>
+    <string name="custom_url_scheme">com.libriseatpro.app</string>
+</resources>
