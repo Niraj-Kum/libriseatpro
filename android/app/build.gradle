@@ -1,4 +1,5 @@
 apply plugin: 'com.android.application'
+apply plugin: 'kotlin-android'
 
 android {
     namespace "com.libriseatpro.app"
@@ -16,11 +17,27 @@ android {
             ignoreAssetsPattern '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
+    signingConfigs {
+        release {
+            storeFile rootProject.file("my-release-key.jks")
+            storePassword "android"
+            keyAlias "my-key-alias"
+            keyPassword "android"
+        }
+    }
     buildTypes {
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            signingConfig signingConfigs.release
         }
+    }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_21
+        targetCompatibility JavaVersion.VERSION_21
+    }
+    kotlinOptions {
+        jvmTarget = '21'
     }
 }
 
@@ -29,9 +46,9 @@ configurations.all {
     resolutionStrategy {
         // Force a specific version of Kotlin stdlib to avoid conflicts
         // This is necessary if different dependencies pull in different versions of Kotlin stdlib
-        force 'org.jetbrains.kotlin:kotlin-stdlib:1.8.22' // Use the version that is desired
-        force 'org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.8.22'
-        force 'org.jetbrains.kotlin:kotlin-stdlib-jdk7:1.8.22'
+        force 'org.jetbrains.kotlin:kotlin-stdlib:2.2.20' // Use the version that is desired
+        force 'org.jetbrains.kotlin:kotlin-stdlib-jdk8:2.2.20'
+        force 'org.jetbrains.kotlin:kotlin-stdlib-jdk7:2.2.20'
     }
 }
 

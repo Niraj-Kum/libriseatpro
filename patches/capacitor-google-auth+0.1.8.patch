@@ -1,0 +1,45 @@
+diff --git a/node_modules/capacitor-google-auth/android/build.gradle b/node_modules/capacitor-google-auth/android/build.gradle
+index ffc9d6a..31cf51b 100644
+--- a/node_modules/capacitor-google-auth/android/build.gradle
++++ b/node_modules/capacitor-google-auth/android/build.gradle
+@@ -10,17 +10,18 @@ buildscript {
+         jcenter()
+     }
+     dependencies {
+-        classpath 'com.android.tools.build:gradle:3.6.1'
++        classpath 'com.android.tools.build:gradle:8.7.2'
+     }
+ }
+ 
+ apply plugin: 'com.android.library'
+ 
+ android {
+-    compileSdkVersion project.hasProperty('compileSdkVersion') ? rootProject.ext.compileSdkVersion : 29
++    namespace 'com.rediska1114.plugins.capacitorgoogleauth'
++    compileSdkVersion rootProject.ext.compileSdkVersion
+     defaultConfig {
+-        minSdkVersion project.hasProperty('minSdkVersion') ? rootProject.ext.minSdkVersion : 21
+-        targetSdkVersion project.hasProperty('targetSdkVersion') ? rootProject.ext.targetSdkVersion : 29
++        minSdkVersion rootProject.ext.minSdkVersion
++        targetSdkVersion rootProject.ext.targetSdkVersion
+         versionCode 1
+         versionName "1.0"
+         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+@@ -36,6 +37,13 @@ android {
+     }
+ }
+ 
++publishing {
++    singleVariant('release') {
++        withSourcesJar()
++        withJavadocJar()
++    }
++}
++
+ repositories {
+     google()
+     jcenter()
+diff --git a/node_modules/capacitor-google-auth/android/CapacitorGoogleAuth.java b/node_modules/capacitor-google-auth/android/capacitor-google-auth/src/main/java/com/rediska1114/plugins/capacitorgoogleauth/CapacitorGoogleAuth.java
+similarity index 100%
+rename from node_modules/capacitor-google-auth/android/CapacitorGoogleAuth.java
+rename to node_modules/capacitor-google-auth/android/capacitor-google-auth/src/main/java/com/rediska1114/plugins/capacitorgoogleauth/CapacitorGoogleAuth.java

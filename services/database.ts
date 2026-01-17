@@ -1,5 +1,5 @@
 
-import { CapacitorSQLite, SQLiteConnection, SQLiteDBConnection, CapacitorDataStorageSqlite } from '@capacitor-community/sqlite';
+import { CapacitorSQLite, SQLiteConnection, SQLiteDBConnection } from '@capacitor-community/sqlite';
 
 const DB_NAME = 'my_database';
 
@@ -16,9 +16,9 @@ const initialize = (): Promise<SQLiteDBConnection | null> => {
         const isConn = ret.result;
         let connection: SQLiteDBConnection;
         if (isConn) {
-          connection = await sqliteConnection.retrieveConnection(DB_NAME);
+          connection = await sqliteConnection.retrieveConnection(DB_NAME, false);
         } else {
-          connection = await sqliteConnection.createConnection(DB_NAME, false, 'no-encryption', 1);
+          connection = await sqliteConnection.createConnection(DB_NAME, false, 'no-encryption', 1, false);
         }
         await connection.open();
 
@@ -85,15 +85,14 @@ export const importDatabase = async (json: any) => {
     if (!db || !sqlite) return;
 
     // Close the existing connection
-    await sqlite.closeConnection(DB_NAME);
+    await sqlite.closeConnection(DB_NAME, false);
 
     // Import the database
     const jsonToImport = JSON.parse(json);
     const result = await sqlite.importFromJson(JSON.stringify(jsonToImport));
     
     // Re-open the connection
-    db = await sqlite.retrieveConnection(DB_NAME);
-    await db.open();
+    await openDatabase();
 
     return result.changes;
 };

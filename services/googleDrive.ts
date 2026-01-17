@@ -17,6 +17,7 @@ export const initGoogleDrive = (onSignedIn: (isSignedIn: boolean) => void) => {
         apiKey: API_KEY,
         discoveryDocs: DISCOVERY_DOCS,
       });
+      await gapi.client.load('drive', 'v3');
 
       tokenClient = google.accounts.oauth2.initTokenClient({
         client_id: CLIENT_ID,
@@ -67,15 +68,20 @@ export const uploadToDrive = async (fileName: string, content: string) => {
 
   try {
     // Check if the file already exists
-    const existingFiles = await gapi.client.drive.files.list({
-      spaces: 'appDataFolder',
-      q: `name='${fileName}'`,
-      fields: 'files(id, name)',
+    const listResponse = await gapi.client.request({
+      path: '/drive/v3/files',
+      params: {
+        spaces: 'appDataFolder',
+        q: `name='${fileName}'`,
+        fields: 'files(id, name)',
+      },
     });
 
-    if (existingFiles.result.files && existingFiles.result.files.length > 0) {
+    const existingFiles = listResponse.result.files;
+
+    if (existingFiles && existingFiles.length > 0) {
       // File exists, update it
-      const fileId = existingFiles.result.files[0].id;
+      const fileId = existingFiles[0].id;
       await gapi.client.request({
         path: `/upload/drive/v3/files/${fileId}`,
         method: 'PATCH',
@@ -84,10 +90,17 @@ export const uploadToDrive = async (fileName: string, content: string) => {
       });
     } else {
       // File does not exist, create it
-      await gapi.client.drive.files.create({
-        resource: fileMetadata,
-        media: media,
-        fields: 'id',
+      await gapi.client.request({
+        path: '/drive/v3/files',
+        method: 'POST',
+        params: { fields: 'id' },
+        body: JSON.stringify({
+          name: fileName,
+          parents: ['appDataFolder'],
+        }),
+        headers: {
+          'Content-Type': 'application/json',
+        },
       });
     }
   } catch (error) {
@@ -98,18 +111,25 @@ export const uploadToDrive = async (fileName: string, content: string) => {
 
 export const restoreFromDrive = async (fileName: string): Promise<string | null> => {
   try {
-    const response = await gapi.client.drive.files.list({
-      spaces: 'appDataFolder',
-      q: `name='${fileName}'`,
-      fields: 'files(id, name)',
+    const listResponse = await gapi.client.request({
+      path: '/drive/v3/files',
+      params: {
+        spaces: 'appDataFolder',
+        q: `name='${fileName}'`,
+        fields: 'files(id, name)',
+      },
     });
 
-    if (response.result.files && response.result.files.length > 0) {
-      const fileId = response.result.files[0].id;
+    const files = listResponse.result.files;
+
+    if (files && files.length > 0) {
+      const fileId = files[0].id;
       if (fileId) {
-        const fileResponse = await gapi.client.drive.files.get({
-          fileId: fileId,
-          alt: 'media',
+        const fileResponse = await gapi.client.request({
+          path: `/drive/v3/files/${fileId}`,
+          params: {
+            alt: 'media',
+          },
         });
         return fileResponse.body;
       }
