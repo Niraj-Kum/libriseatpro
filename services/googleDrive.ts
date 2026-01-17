@@ -1,7 +1,7 @@
+
 /* global gapi */
 
-const API_KEY = 'YOUR_API_KEY'; // Replace with your Google API Key
-const CLIENT_ID = 'YOUR_CLIENT_ID'; // Replace with your Google Client ID
+import { CLIENT_ID, API_KEY } from "../src/constants";
 
 const DISCOVERY_DOCS = ['https://www.googleapis.com/discovery/v1/apis/drive/v3/rest'];
 const SCOPES = 'https://www.googleapis.com/auth/drive.file';
