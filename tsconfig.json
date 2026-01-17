@@ -11,7 +11,9 @@
     ],
     "skipLibCheck": true,
     "types": [
-      "node"
+      "node",
+      "gapi",
+      "google.accounts"
     ],
     "moduleResolution": "bundler",
     "isolatedModules": true,

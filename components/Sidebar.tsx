@@ -9,7 +9,8 @@ import {
   LogOut,
   Library,
   TrendingUp,
-  UserPlus
+  UserPlus,
+  Database
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -26,6 +27,7 @@ const Sidebar: React.FC<SidebarProps> = ({ currentView, setCurrentView, onLogout
     { id: 'timeline', label: 'Times', icon: CalendarClock },
     { id: 'bookings', label: 'Ledger', icon: TrendingUp },
     { id: 'students', label: 'Users', icon: Users },
+    { id: 'backup', label: 'Backup/Restore', icon: Database },
     { id: 'settings', label: 'Prefs', icon: SettingsIcon },
   ];
 

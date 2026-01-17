@@ -30,8 +30,8 @@ const TimelineView: React.FC<TimelineViewProps> = ({ bookings, settings, onCellC
       b.startDate <= selectedDate &&
       b.endDate >= selectedDate &&
       b.daysOfWeek.includes(dayOfWeek) &&
-      timeStr >= b.startTime.split(':')[0] + ':00' && // Check if hour matches
-      timeStr <= b.endTime
+      timeStr >= b.startTime &&
+      timeStr < b.endTime
     );
   };
 

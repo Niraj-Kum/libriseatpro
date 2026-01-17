@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { X, User, Mail, Phone, ChevronRight } from 'lucide-react';
+import { X, User, Mail, Phone, ChevronRight, IndianRupee } from 'lucide-react';
 import { Student } from '../types';
 
 interface StudentFormProps {
@@ -12,6 +12,7 @@ const StudentForm: React.FC<StudentFormProps> = ({ onClose, onSave }) => {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
+  const [defaultPrice, setDefaultPrice] = useState<number | undefined>();
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -24,7 +25,8 @@ const StudentForm: React.FC<StudentFormProps> = ({ onClose, onSave }) => {
       id: Math.random().toString(36).substr(2, 9).toUpperCase(),
       name: name.trim(),
       email: email.trim() || 'N/A', // Default to N/A if empty
-      phone: phone.trim() || 'N/A'  // Default to N/A if empty
+      phone: phone.trim() || 'N/A',  // Default to N/A if empty
+      defaultPrice: defaultPrice
     };
 
     onSave(newStudent);
@@ -56,6 +58,19 @@ const StudentForm: React.FC<StudentFormProps> = ({ onClose, onSave }) => {
                 onChange={e => setName(e.target.value)}
                 className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 focus:ring-2 focus:ring-indigo-500 outline-none transition-all text-black font-semibold"
                 required
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2 flex items-center gap-2">
+                <IndianRupee className="w-3.5 h-3.5" /> Default Price <span className="text-[9px] font-medium lowercase">(Optional)</span>
+              </label>
+              <input 
+                type="number" 
+                placeholder="e.g. 150"
+                value={defaultPrice || ''}
+                onChange={e => setDefaultPrice(parseInt(e.target.value) || undefined)}
+                className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 focus:ring-2 focus:ring-indigo-500 outline-none transition-all text-black font-medium"
               />
             </div>
             

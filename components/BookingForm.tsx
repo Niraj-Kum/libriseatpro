@@ -1,23 +1,16 @@
-
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Student, Booking, Settings, FeeStatus } from '../types';
 import { DAYS } from '../constants';
-import { X, Calendar, Clock, ChevronRight, Search, User, Check, IndianRupee, AlertCircle, Edit3, Repeat, Calculator, Info, UserPlus, Globe, MousePointer2 } from 'lucide-react';
-
-const formatTimeTo12Hour = (time24h: string): string => {
-  if (!time24h) return '';
-  const [hours, minutes] = time24h.split(':').map(Number);
-  const ampm = hours >= 12 ? 'PM' : 'AM';
-  const hours12 = hours % 12 || 12; // Convert 0 to 12 for 12 AM/PM
-  return `${hours12}:${minutes.toString().padStart(2, '0')} ${ampm}`;
-};
+import { X, Calendar, Clock, ChevronRight, Search, User, Check, IndianRupee, AlertCircle, Edit3, Repeat, Calculator, Info, UserPlus, Globe, MousePointer2, Sparkles } from 'lucide-react';
+import { getSuggestedPrice } from '../services/geminiService';
+import TimePicker from './TimePicker';
 
 type DurationUnit = 'DAY' | 'WEEK' | 'MONTH' | 'YEAR';
-type PricingModel = 'FLAT' | 'HOURLY';
 type ActivationType = 'DAILY' | 'CUSTOM';
 
 interface BookingFormProps {
   students: Student[];
+  bookings: Booking[];
   settings: Settings;
   initialSeat?: number;
   initialDate?: string;
@@ -27,8 +20,20 @@ interface BookingFormProps {
   onAddStudent: () => void;
 }
 
+const parseTimeToDate = (timeString: string): Date => {
+  const [hours, minutes] = timeString.split(':').map(Number);
+  const date = new Date();
+  date.setHours(hours, minutes, 0, 0);
+  return date;
+};
+
+const formatTime = (date: Date): string => {
+    return date.toTimeString().split(' ')[0].substring(0, 5);
+}
+
 const BookingForm: React.FC<BookingFormProps> = ({ 
   students, 
+  bookings,
   settings, 
   initialSeat, 
   initialDate, 
@@ -50,20 +55,19 @@ const BookingForm: React.FC<BookingFormProps> = ({
 
   const [durationValue, setDurationValue] = useState(1);
   const [durationUnit, setDurationUnit] = useState<DurationUnit>('MONTH');
-  const [pricingModel, setPricingModel] = useState<PricingModel>('FLAT');
   
   const [daysOfWeek, setDaysOfWeek] = useState<number[]>(
     initialBooking?.daysOfWeek || [0, 1, 2, 3, 4, 5, 6]
   ); 
   
-  const [unitPrice, setUnitPrice] = useState(settings.pricePerSession);
-  const [hourlyRate, setHourlyRate] = useState(30);
-  
-  const [startTime, setStartTime] = useState(initialBooking?.startTime || '09:00');
-  const [endTime, setEndTime] = useState(initialBooking?.endTime || '11:00');
+  const [startTime, setStartTime] = useState<Date>(parseTimeToDate(initialBooking?.startTime || '09:00'));
+  const [endTime, setEndTime] = useState<Date>(parseTimeToDate(initialBooking?.endTime || '11:00'));
   
   const [totalAmount, setTotalAmount] = useState(initialBooking?.amount || 0);
   const [paidAmount, setPaidAmount] = useState(initialBooking?.paidAmount || 0);
+
+  const [suggestedPrice, setSuggestedPrice] = useState<number | null>(null);
+  const [isSuggesting, setIsSuggesting] = useState(false);
 
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -89,25 +93,15 @@ const BookingForm: React.FC<BookingFormProps> = ({
     students.find(s => s.id === studentId), 
   [students, studentId]);
 
-  const getDayIndex = (dateStr: string) => new Date(dateStr).getDay();
-
-  const hoursPerSession = useMemo(() => {
-    const start = new Date(`1970-01-01T${startTime}:00`);
-    const end = new Date(`1970-01-01T${endTime}:00`);
-    let diff = (end.getTime() - start.getTime()) / (1000 * 60 * 60);
-    return diff > 0 ? diff : 0;
-  }, [startTime, endTime]);
-
-  const totalActiveDays = useMemo(() => {
-    let count = 0;
-    let current = new Date(startDate);
-    const last = new Date(endDate);
-    while (current <= last) {
-      if (daysOfWeek.includes(current.getDay())) count++;
-      current.setDate(current.getDate() + 1);
+  useEffect(() => {
+    if (selectedStudent && selectedStudent.defaultPrice) {
+      setTotalAmount(selectedStudent.defaultPrice);
+    } else if (selectedStudent) {
+        setTotalAmount(0);
     }
-    return count;
-  }, [startDate, endDate, daysOfWeek]);
+  }, [selectedStudent]);
+
+  const getDayIndex = (dateStr: string) => new Date(dateStr).getDay();
 
   useEffect(() => {
     const start = new Date(startDate);
@@ -121,15 +115,6 @@ const BookingForm: React.FC<BookingFormProps> = ({
     }
     setEndDate(end.toISOString().split('T')[0]);
   }, [startDate, durationValue, durationUnit]);
-
-  useEffect(() => {
-    if (pricingModel === 'FLAT') {
-      setTotalAmount(durationValue * unitPrice);
-    } else {
-      const totalHours = totalActiveDays * hoursPerSession;
-      setTotalAmount(Math.round(totalHours * hourlyRate));
-    }
-  }, [pricingModel, durationValue, unitPrice, totalActiveDays, hoursPerSession, hourlyRate]);
 
   useEffect(() => {
     if (activationType === 'DAILY') {
@@ -149,6 +134,17 @@ const BookingForm: React.FC<BookingFormProps> = ({
     setDaysOfWeek(prev => prev.includes(dayIdx) ? prev.filter(d => d !== dayIdx) : [...prev, dayIdx].sort());
   };
 
+  const handleSuggestPrice = async () => {
+    if (!selectedStudent) return;
+    setIsSuggesting(true);
+    const price = await getSuggestedPrice(selectedStudent, bookings);
+    if (price) {
+      setSuggestedPrice(price);
+      setTotalAmount(price);
+    }
+    setIsSuggesting(false);
+  };
+
   const dueAmount = Math.max(0, totalAmount - paidAmount);
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -166,8 +162,8 @@ const BookingForm: React.FC<BookingFormProps> = ({
       seatNumber,
       startDate,
       endDate,
-      startTime,
-      endTime,
+      startTime: formatTime(startTime),
+      endTime: formatTime(endTime),
       daysOfWeek,
       amount: totalAmount,
       paidAmount,
@@ -256,14 +252,12 @@ const BookingForm: React.FC<BookingFormProps> = ({
             <div className="space-y-3">
               <label className="block text-[9px] font-black text-slate-400 uppercase">Daily Time Window</label>
               <div className="flex items-center gap-2">
-                <div className="flex-1 flex items-center gap-1">
-                  <input type="time" value={startTime} onChange={e => setStartTime(e.target.value)} className="flex-1 bg-white border border-slate-200 rounded-lg px-2 py-2 text-xs font-bold" />
-                  <span className="text-slate-500 text-xs font-bold w-16 text-center">{formatTimeTo12Hour(startTime)}</span>
+                <div className="flex-1">
+                    <TimePicker selected={startTime} onChange={setStartTime} />
                 </div>
-                <span className="text-slate-300">→</span>
-                <div className="flex-1 flex items-center gap-1">
-                  <input type="time" value={endTime} onChange={e => setEndTime(e.target.value)} className="flex-1 bg-white border border-slate-200 rounded-lg px-2 py-2 text-xs font-bold" />
-                  <span className="text-slate-500 text-xs font-bold w-16 text-center">{formatTimeTo12Hour(endTime)}</span>
+                <span className="text-slate-300 font-bold">→</span>
+                <div className="flex-1">
+                    <TimePicker selected={endTime} onChange={setEndTime} />
                 </div>
               </div>
             </div>
@@ -298,16 +292,15 @@ const BookingForm: React.FC<BookingFormProps> = ({
           <section className="bg-indigo-600 rounded-2xl p-5 text-white space-y-5">
             <div className="flex justify-between items-center">
               <p className="text-[10px] font-black uppercase tracking-widest opacity-60">Price & Advance</p>
-              <div className="bg-white/10 p-0.5 rounded-lg border border-white/20">
-                <button type="button" onClick={() => setPricingModel('FLAT')} className={`px-3 py-1.5 rounded-md text-[8px] font-black ${pricingModel === 'FLAT' ? 'bg-white text-indigo-600' : 'text-white'}`}>BUNDLE</button>
-                <button type="button" onClick={() => setPricingModel('HOURLY')} className={`px-3 py-1.5 rounded-md text-[8px] font-black ${pricingModel === 'HOURLY' ? 'bg-white text-indigo-600' : 'text-white'}`}>HOURLY</button>
-              </div>
+              <button type="button" onClick={handleSuggestPrice} disabled={isSuggesting || !selectedStudent} className="flex items-center gap-2 text-xs font-bold bg-white/10 px-3 py-2 rounded-lg disabled:opacity-50">
+                <Sparkles className="w-4 h-4" /> {isSuggesting ? 'Thinking...' : 'Suggest Price'}
+              </button>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-[8px] font-black uppercase text-indigo-200 mb-1">{pricingModel === 'FLAT' ? 'Rate' : 'Hourly'}</label>
-                <input type="number" value={pricingModel === 'FLAT' ? unitPrice : hourlyRate} onChange={e => pricingModel === 'FLAT' ? setUnitPrice(parseInt(e.target.value) || 0) : setHourlyRate(parseInt(e.target.value) || 0)} className="w-full bg-white/10 border border-white/20 rounded-lg px-3 py-3 text-white font-black text-sm" />
+                <label className="block text-[8px] font-black uppercase text-indigo-200 mb-1">Total Amount</label>
+                <input type="number" value={totalAmount} onChange={e => setTotalAmount(parseInt(e.target.value) || 0)} className="w-full bg-white/10 border border-white/20 rounded-lg px-3 py-3 text-white font-black text-sm" />
               </div>
               <div>
                 <label className="block text-[8px] font-black uppercase text-indigo-200 mb-1">Paid Amount</label>
@@ -315,10 +308,9 @@ const BookingForm: React.FC<BookingFormProps> = ({
               </div>
             </div>
 
-            <div className="text-center pt-2">
-              <p className="text-[9px] font-black uppercase text-indigo-200 mb-1 tracking-[0.2em]">Calculated Valuation</p>
-              <h4 className="text-3xl font-black italic tracking-tight">₹{totalAmount}</h4>
-            </div>
+            {suggestedPrice && (
+              <p className="text-center text-xs text-indigo-200">AI Suggestion: ₹{suggestedPrice}</p>
+            )}
 
             {dueAmount > 0 && (
                <div className="bg-rose-500/20 p-2 rounded-lg text-center">

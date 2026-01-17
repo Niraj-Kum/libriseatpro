@@ -6,6 +6,7 @@ export interface Student {
   name: string;
   email: string;
   phone: string;
+  defaultPrice?: number;
 }
 
 export interface Booking {
@@ -26,8 +27,6 @@ export interface Booking {
 
 export interface Settings {
   totalSeats: number;
-  allowPastDates: boolean;
-  pricePerSession: number;
 }
 
 export interface DashboardStats {

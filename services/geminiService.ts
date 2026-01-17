@@ -1,6 +1,6 @@
 
 import { GoogleGenAI } from "@google/genai";
-import { Booking } from "../types";
+import { Booking, Student } from "../types";
 
 export const getAIInsights = async (bookings: Booking[], totalRevenue: number, totalDues: number) => {
   // Initialize with named parameter as per guidelines
@@ -43,5 +43,38 @@ export const getAIInsights = async (bookings: Booking[], totalRevenue: number, t
   } catch (error) {
     console.error("Gemini Error:", error);
     return "Failed to load AI insights. Please check your connection or API key.";
+  }
+};
+
+export const getSuggestedPrice = async (student: Student, allBookings: Booking[]): Promise<number | null> => {
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+
+  const studentHistory = allBookings.filter(b => b.studentId === student.id);
+  const similarBookings = allBookings.filter(b => b.studentId !== student.id);
+
+  const prompt = `
+    As an AI pricing analyst for a library, suggest a fair price for a new booking.
+
+    Student Details:
+    - Name: ${student.name}
+    - Previous Bookings: ${studentHistory.length}
+    - Default Price: ₹${student.defaultPrice || 'Not Set'}
+
+    Recent comparable bookings by other students:
+    ${JSON.stringify(similarBookings.slice(0, 5).map(b => ({ duration: `${b.startDate} to ${b.endDate}`, price: b.amount })), null, 2)}
+
+    Based on this data, what is a fair price for a new standard monthly booking? Return only the numeric value, no currency symbols or text.
+  `;
+
+  try {
+    const response = await ai.models.generateContent({
+      model: 'gemini-3-flash-preview',
+      contents: prompt,
+    });
+    const price = parseInt(response.text, 10);
+    return isNaN(price) ? null : price;
+  } catch (error) {
+    console.error("Gemini Price Suggestion Error:", error);
+    return null;
   }
 };

@@ -1,6 +1,6 @@
 
 import React, { useEffect } from 'react';
-import { X, User, Armchair, Calendar, Clock, CreditCard, Info, Edit2 } from 'lucide-react';
+import { X, User, Armchair, Calendar, Clock, CreditCard, Info, Edit2, Trash2 } from 'lucide-react';
 import { Booking } from '../types';
 import { CURRENCY_FORMATTER, DAYS } from '../constants';
 
@@ -8,9 +8,10 @@ interface BookingDetailsModalProps {
   booking: Booking;
   onClose: () => void;
   onEdit: (booking: Booking) => void;
+  onDelete: (bookingId: string) => void;
 }
 
-const BookingDetailsModal: React.FC<BookingDetailsModalProps> = ({ booking, onClose, onEdit }) => {
+const BookingDetailsModal: React.FC<BookingDetailsModalProps> = ({ booking, onClose, onEdit, onDelete }) => {
   const selectedDays = booking.daysOfWeek.map(d => DAYS[d]).join(', ');
 
   // Prevent background scrolling when modal is open
@@ -124,18 +125,21 @@ const BookingDetailsModal: React.FC<BookingDetailsModalProps> = ({ booking, onCl
             )}
           </section>
 
-          <div className="grid grid-cols-2 gap-4">
-            <button 
-              onClick={() => onEdit(booking)}
-              className="bg-indigo-600 text-white py-4 rounded-2xl font-bold text-lg hover:bg-indigo-700 transition-all shadow-lg active:scale-95 flex items-center justify-center gap-2"
+          <div className="grid grid-cols-3 gap-4">
+             <button 
+              onClick={() => {
+                onDelete(booking.id);
+                onClose();
+              }}
+              className="bg-rose-600 text-white py-4 rounded-2xl font-bold text-lg hover:bg-rose-700 transition-all shadow-lg active:scale-95 flex items-center justify-center gap-2"
             >
-              <Edit2 className="w-5 h-5" /> Edit
+              <Trash2 className="w-5 h-5" /> Delete
             </button>
             <button 
-              onClick={onClose}
-              className="bg-slate-900 text-white py-4 rounded-2xl font-bold text-lg hover:bg-black transition-all shadow-lg active:scale-95"
+              onClick={() => onEdit(booking)}
+              className="bg-indigo-600 text-white py-4 rounded-2xl font-bold text-lg hover:bg-indigo-700 transition-all shadow-lg active:scale-95 flex items-center justify-center gap-2 col-span-2"
             >
-              Close
+              <Edit2 className="w-5 h-5" /> Edit & Close
             </button>
           </div>
         </div>

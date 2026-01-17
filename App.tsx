@@ -8,8 +8,13 @@ import BookingForm from './components/BookingForm';
 import StudentForm from './components/StudentForm';
 import BookingDetailsModal from './components/BookingDetailsModal';
 import AIInsights from './components/AIInsights';
+import BackupRestore from './components/BackupRestore';
 import { Student, Booking, Settings, DashboardStats, FeeStatus } from './types';
-import { dbService } from './services/dbService';
+import { 
+  getStudents, getBookings, addStudent, addBooking, 
+  updateBooking, deleteBooking, openDatabase, addUser, findUser,
+  deleteStudent as dbDeleteStudent, factoryReset as dbFactoryReset
+} from './services/database';
 import { 
   Plus, Search, CheckCircle2, 
   Loader2, Database, ShieldCheck, Trash2, Library, LogOut
@@ -34,35 +39,30 @@ const App: React.FC = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [authEmail, setAuthEmail] = useState('');
   const [authPass, setAuthPass] = useState('');
-  
+  const [isLoginView, setIsLoginView] = useState(true);
+  const [authError, setAuthError] = useState('');
+
   const [studentSearchQuery, setStudentSearchQuery] = useState('');
   const [showOnlyDues, setShowOnlyDues] = useState(false);
   const [studentSortBy, setStudentSortBy] = useState<'name' | 'dues' | 'paid'>('name');
   const [bookingSearchQuery, setBookingSearchQuery] = useState('');
   const [bookingStatusFilter, setBookingStatusFilter] = useState<FeeStatus | 'All'>('All');
 
+  const fetchData = async () => {
+    const studentData = await getStudents();
+    const bookingData = await getBookings();
+    setStudents(studentData as Student[]);
+    setBookings(bookingData as Booking[]);
+  };
+
   useEffect(() => {
     const init = async () => {
-      const initialSettings = await dbService.getSettings();
-      setSettings(initialSettings);
-
-      const unsubscribeStudents = await dbService.subscribeToStudents(setStudents);
-      const unsubscribeBookings = await dbService.subscribeToBookings((data) => {
-        setBookings(data);
-        setIsDataLoaded(true);
-      });
-
-      return () => {
-        unsubscribeStudents();
-        unsubscribeBookings();
-      };
+      await openDatabase();
+      await fetchData();
+      setSettings({ totalSeats: 40 }); // Default settings
+      setIsDataLoaded(true);
     };
-
-    const unregister = init();
-
-    return () => {
-        unregister.then(fn => fn());
-    }
+    init();
   }, []);
 
   const stats: DashboardStats = useMemo(() => {
@@ -72,8 +72,9 @@ const App: React.FC = () => {
     const currentDayIdx = now.getDay();
 
     const liveOccupancy = bookings.filter(b => {
+      const days = typeof b.daysOfWeek === 'string' ? JSON.parse(b.daysOfWeek) : b.daysOfWeek;
       return b.startDate <= todayStr && b.endDate >= todayStr &&
-             b.daysOfWeek.includes(currentDayIdx) &&
+             days.includes(currentDayIdx) &&
              currentTime >= b.startTime && currentTime <= b.endTime;
     }).length;
 
@@ -116,12 +117,17 @@ const App: React.FC = () => {
         b.id.toLowerCase().includes(bookingSearchQuery.toLowerCase());
       const matchesStatus = bookingStatusFilter === 'All' || b.feeStatus === bookingStatusFilter;
       return matchesSearch && matchesStatus;
-    }).sort((a, b) => new Date(b.createdAt || '').getTime() - new Date(a.createdAt || '').getTime());
+    }).sort((a, b) => new Date(b.createdAt || ' ').getTime() - new Date(a.createdAt || ' ').getTime());
   }, [bookings, bookingSearchQuery, bookingStatusFilter]);
 
   const handleSaveBooking = async (bookingPayload: Booking) => {
     setIsProcessing(true);
-    await dbService.saveBooking(bookingPayload);
+    if (editingBooking) {
+      await updateBooking(bookingPayload);
+    } else {
+      await addBooking(bookingPayload);
+    }
+    await fetchData();
     setShowBookingForm(false);
     setEditingBooking(null);
     setSelectedSeat(undefined);
@@ -131,16 +137,38 @@ const App: React.FC = () => {
 
   const handleSaveStudent = async (newStudent: Student) => {
     setIsProcessing(true);
-    await dbService.saveStudent(newStudent);
+    await addStudent(newStudent);
+    await fetchData();
     setShowStudentForm(false);
     setIsProcessing(false);
   };
 
+  const handleDeleteBooking = async (id: string) => {
+      if (confirm("Are you sure? This will delete the booking.")) {
+          setIsProcessing(true);
+          await deleteBooking(id);
+          await fetchData();
+          setViewingBooking(null);
+          setIsProcessing(false);
+      }
+  }
+
   const handleDeleteStudent = async (id: string) => {
     if (confirm("Are you sure? This will delete the student and all their associated bookings.")) {
       setIsProcessing(true);
-      await dbService.deleteStudent(id);
+      await dbDeleteStudent(id);
+      await fetchData();
       setIsProcessing(false);
+    }
+  };
+
+  const handleFactoryReset = async () => {
+    if (confirm("This will delete all data. Are you sure?")) {
+        setIsProcessing(true);
+        await dbFactoryReset();
+        await fetchData();
+        setIsProcessing(false);
+        alert("Factory reset complete.");
     }
   };
 
@@ -148,8 +176,17 @@ const App: React.FC = () => {
     const now = new Date();
     const todayStr = now.toISOString().split('T')[0];
     const currentTime = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
-    const occupantMap = dbService.getOccupancyStatus(bookings, todayStr, currentTime);
-    const occupant = occupantMap.get(seat);
+    const dayOfWeek = now.getDay();
+
+    const occupant = bookings.find(b => {
+        const days = typeof b.daysOfWeek === 'string' ? JSON.parse(b.daysOfWeek) : b.daysOfWeek;
+        return b.seatNumber === seat &&
+        b.startDate <= todayStr &&
+        b.endDate >= todayStr &&
+        days.includes(dayOfWeek) &&
+        currentTime >= b.startTime &&
+        currentTime < b.endTime
+    });
 
     if (occupant) {
       setViewingBooking(occupant);
@@ -161,11 +198,40 @@ const App: React.FC = () => {
     }
   };
 
-  const handleLogout = () => setIsLoggedIn(false);
-  const handleLogin = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (authEmail && authPass) setIsLoggedIn(true);
+  const handleLogout = () => {
+    setIsLoggedIn(false);
+    setAuthEmail('');
+    setAuthPass('');
   };
+
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setAuthError('');
+    const user = await findUser({ email: authEmail, password: authPass });
+    if (user) {
+      setIsLoggedIn(true);
+    } else {
+      setAuthError('Invalid credentials. Please try again.');
+    }
+  };
+
+  const handleSignUp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setAuthError('');
+    try {
+      await addUser({ email: authEmail, password: authPass });
+      setIsLoggedIn(true);
+    } catch (error) {
+      setAuthError('Email may already be in use.');
+    }
+  };
+
+  const toggleAuthView = () => {
+    setIsLoginView(!isLoginView);
+    setAuthError('');
+    setAuthEmail('');
+    setAuthPass('');
+  }
 
   if (!isLoggedIn) {
     return (
@@ -178,14 +244,21 @@ const App: React.FC = () => {
             <h1 className="text-2xl font-black text-slate-900">LibriSeat Pro</h1>
             <p className="text-slate-400 font-medium">Mobile Library Console</p>
           </div>
-          <form onSubmit={handleLogin} className="space-y-6">
+          <form onSubmit={isLoginView ? handleLogin : handleSignUp} className="space-y-6">
             <div className="space-y-4">
               <input type="email" placeholder="Admin Email" value={authEmail} onChange={e => setAuthEmail(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3.5 focus:ring-2 focus:ring-indigo-500 outline-none text-black" required />
               <input type="password" placeholder="Password" value={authPass} onChange={e => setAuthPass(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3.5 focus:ring-2 focus:ring-indigo-500 outline-none text-black" required />
             </div>
+            {authError && <p className="text-rose-500 text-sm text-center">{authError}</p>}
             <button type="submit" className="w-full bg-indigo-600 text-white py-4 rounded-xl font-bold text-lg">
-              Sign In
+              {isLoginView ? 'Sign In' : 'Sign Up'}
             </button>
+            <p className="text-center text-sm text-slate-500">
+              {isLoginView ? "Don't have an account?" : "Already have an account?"}{' '}
+              <button type="button" onClick={toggleAuthView} className="font-bold text-indigo-600">
+                {isLoginView ? 'Sign Up' : 'Sign In'}
+              </button>
+            </p>
           </form>
         </div>
       </div>
@@ -228,7 +301,7 @@ const App: React.FC = () => {
         </header>
 
         <div className="p-4 sm:p-8 max-w-7xl mx-auto space-y-6">
-          {/* Status Badge - Hidden on very small screens or moved */}
+          {/* Status Badge */}
           <div className="hidden sm:flex justify-end">
             <div className="px-3 py-1.5 rounded-full border bg-emerald-50 border-emerald-100 text-emerald-600 flex items-center gap-2">
               <Database className="w-3 h-3" />
@@ -279,7 +352,6 @@ const App: React.FC = () => {
                   </div>
                </div>
                
-               {/* Table for Desktop, Cards for Mobile */}
                <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
                  <div className="hidden sm:block">
                    <table className="w-full text-left">
@@ -360,6 +432,8 @@ const App: React.FC = () => {
              </div>
           )}
 
+          {currentView === 'backup' && <BackupRestore />}
+
           {currentView === 'settings' && (
              <div className="max-w-2xl space-y-6">
                 <h1 className="text-2xl font-black text-slate-900">System</h1>
@@ -369,14 +443,18 @@ const App: React.FC = () => {
                       <h3 className="font-bold text-slate-900">Library Capacity</h3>
                       <p className="text-[10px] text-slate-500">Max seats available</p>
                     </div>
-                    <input type="number" value={settings.totalSeats} onChange={e => setSettings({...settings, totalSeats: parseInt(e.target.value) || 1})} className="w-16 bg-slate-50 border border-slate-200 rounded-lg px-2 py-2 text-center font-bold text-black" />
+                    <input type="number" value={settings?.totalSeats} onChange={e => setSettings(s => s ? {...s, totalSeats: parseInt(e.target.value) || 1} : null)} className="w-16 bg-slate-50 border border-slate-200 rounded-lg px-2 py-2 text-center font-bold text-black" />
                   </div>
-                  <button onClick={async () => { 
-                    setIsProcessing(true);
-                    await dbService.saveSettings(settings); 
-                    setIsProcessing(false);
-                    alert("Saved locally"); 
-                  }} className="w-full bg-slate-900 text-white py-3.5 rounded-xl font-bold">Update Preferences</button>
+                  <button onClick={() => alert("Settings are saved automatically in local storage.")} className="w-full bg-slate-900 text-white py-3.5 rounded-xl font-bold">Update Preferences</button>
+                </div>
+                <div className="bg-white p-6 rounded-2xl border border-rose-200 shadow-sm space-y-4">
+                    <div>
+                      <h3 className="font-bold text-rose-600">Danger Zone</h3>
+                      <p className="text-[10px] text-slate-500">These actions are not reversible.</p>
+                    </div>
+                    <button onClick={handleFactoryReset} className="w-full bg-rose-600 text-white py-3 rounded-xl font-bold flex items-center justify-center gap-2">
+                      <Trash2 className="w-4 h-4" /> Factory Reset
+                    </button>
                 </div>
              </div>
           )}
@@ -386,6 +464,7 @@ const App: React.FC = () => {
       {showBookingForm && (
         <BookingForm 
           students={students} 
+          bookings={bookings}
           settings={settings} 
           initialSeat={selectedSeat} 
           initialDate={preSelectedDate} 
@@ -396,7 +475,7 @@ const App: React.FC = () => {
         />
       )}
       {showStudentForm && <StudentForm onClose={() => setShowStudentForm(false)} onSave={handleSaveStudent} />}
-      {viewingBooking && <BookingDetailsModal booking={viewingBooking} onClose={() => setViewingBooking(null)} onEdit={(b) => { setViewingBooking(null); setEditingBooking(b); setShowBookingForm(true); }} />}
+      {viewingBooking && <BookingDetailsModal booking={viewingBooking} onClose={() => setViewingBooking(null)} onEdit={(b) => { setViewingBooking(null); setEditingBooking(b); setShowBookingForm(true); }} onDelete={handleDeleteBooking} />}
     </div>
   );
 };
