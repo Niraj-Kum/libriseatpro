@@ -7,18 +7,16 @@ let db: SQLiteDBConnection | null = null;
 let sqlite: SQLiteConnection | null = null;
 let initializationPromise: Promise<SQLiteDBConnection | null> | null = null;
 
-const initialize = (): Promise<SQLiteDBConnection | null> => {
-  return new Promise((resolve) => {
-    window.addEventListener('jeepSqliteComponentLoaded', async () => {
-      try {
+const initialize = async (): Promise<SQLiteDBConnection | null> => {
+    try {
         const sqliteConnection = new SQLiteConnection(CapacitorSQLite);
         const ret = await sqliteConnection.checkConnectionsConsistency();
         const isConn = ret.result;
         let connection: SQLiteDBConnection;
         if (isConn) {
-          connection = await sqliteConnection.retrieveConnection(DB_NAME, false);
+            connection = await sqliteConnection.retrieveConnection(DB_NAME, false);
         } else {
-          connection = await sqliteConnection.createConnection(DB_NAME, false, 'no-encryption', 1, false);
+            connection = await sqliteConnection.createConnection(DB_NAME, false, 'no-encryption', 1, false);
         }
         await connection.open();
 
@@ -53,13 +51,11 @@ const initialize = (): Promise<SQLiteDBConnection | null> => {
         `;
         await connection.execute(schema);
         sqlite = sqliteConnection;
-        resolve(connection);
-      } catch (err) {
+        return connection;
+    } catch (err) {
         console.error("Error initializing database", err);
-        resolve(null);
-      }
-    });
-  });
+        return null;
+    }
 };
 
 export const openDatabase = async (): Promise<SQLiteDBConnection | null> => {
